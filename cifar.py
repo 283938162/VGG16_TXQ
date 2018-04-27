@@ -26,7 +26,7 @@ from util.util import *
 
 # global variables
 DATASET_NUM = 10000
-BATCH = 100
+BATCH = 64
 EPOCH = 10
 
 images = []
@@ -40,7 +40,7 @@ def gen_onehot_list(label=0):
     Args: answer-index
     Returns: one-hot list
     """
-    return [1 if l==label else 0 for l in range(0, 10)]
+    return [1 if l==label else 0 for l in range(0, 10)]    #注意其简洁的用法
 
 
 def load_data():
@@ -65,13 +65,16 @@ def load_data():
         
 
 def get_next_batch(max_length, length=BATCH, is_training=True):
+    ##获取下一个minibatch，另一种方式
     """
     extract next batch-images
 
     Returns: batch sized BATCH
     """
     if is_training:
-        indicies = np.random.choice(max_length, length)
+        indicies = np.random.choice(max_length, length)  #从0-（max_length-1）中随机以array形式返回length个数据
+        #从np.arrary([max_length])中随机采样，返回length个采样点
+        #可以从一个int数字或1维array里随机选取内容，并将选取结果放入n维array中返回。
         next_batch = train_images[indicies]
         next_labels = train_labels[indicies]
     else:
@@ -105,10 +108,10 @@ with tf.Session() as sess:
     """
     TensorFlow session
     """
-    args = sys.argv
+    args = sys.argv    #获取命令行参数  通过外部添加参数来决定是训练还是测试
 
     # use VGG16 network
-    vgg = VGG16()
+    vgg = VGG16()       ###类的调用，构建实例
     # params for converting to answer-label-size
     w = tf.Variable(tf.truncated_normal([512, 10], 0.0, 1.0) * 0.01, name='w_last')
     b = tf.Variable(tf.truncated_normal([10], 0.0, 1.0) * 0.01, name='b_last')
@@ -116,7 +119,7 @@ with tf.Session() as sess:
     # input image's placeholder and output of VGG16
     input = tf.placeholder(shape=[None, 32, 32, 3], dtype=tf.float32)
     fmap = vgg.build(input, is_training=True)
-    predict = tf.nn.softmax(tf.add(tf.matmul(fmap, w), b))
+    predict = tf.nn.softmax(tf.add(tf.matmul(fmap, w), b))  #归一化的向量
 
     # params for defining Loss-func and Training-step
     ans = tf.placeholder(shape=None, dtype=tf.float32)
@@ -138,7 +141,7 @@ with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, './params.ckpt')
         test()
-        sys.exit()
+        sys.exit()  #程序退出
     # ========= Loading END ======== #
 
     print('\nSTART LEARNING')
@@ -156,7 +159,7 @@ with tf.Session() as sess:
             if (b+1) % 100 == 0:
                 print('============================================')
                 print('START TEST')
-                test()
+                test()    #随时看数据防止过拟合
                 print('END TEST')
                 print('============================================')
             time.sleep(0)
@@ -172,8 +175,10 @@ with tf.Session() as sess:
     saver.save(sess, './params.ckpt')
 
     # plot
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
+    # plt.figure(1)
+    plt.xlabel('Epoch1')
+    plt.ylabel('Loss1')
     plt.plot(np.array(range(EPOCH)), lossbox)
     plt.show()
+    # plt.show()
     

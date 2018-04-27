@@ -24,6 +24,7 @@ class VGG16:
 
         # flag: is_training? for tensorflow-graph
         self.train_phase = tf.constant(is_training) if is_training else None
+        #若is_training为真，则self.train_phase= tf.constant(is_training)，否则self.train_phase =None
 
         self.conv1_1 = self.convolution(input, 'conv1_1')
         self.conv1_2 = self.convolution(self.conv1_1, 'conv1_2')
@@ -71,7 +72,7 @@ class VGG16:
         Return: convolution layer
         """
         print('Current input size in convolution layer is: '+str(input.get_shape().as_list()))
-        with tf.variable_scope(name):
+        with tf.variable_scope(name):  #管理一个图中变量的名字
             size = vgg.structure[name]
             kernel = self.get_weight(size[0], name='w_'+name)
             bias = self.get_bias(size[1], name='b_'+name)
@@ -87,7 +88,7 @@ class VGG16:
         size = vgg.structure[name]
         with tf.variable_scope(name):
             shape = input.get_shape().as_list()
-            dim = reduce(lambda x, y: x * y, shape[1:])
+            dim = reduce(lambda x, y: x * y, shape[1:]) #对shape[1:]的元素进行累乘
             x = tf.reshape(input, [-1, dim])
 
             weights = self.get_weight([dim, size[0][0]], name=name)
@@ -119,7 +120,7 @@ class VGG16:
         gamma = tf.Variable(tf.ones([n_out]))
 
         if len(shape) == 2:
-            batch_mean, batch_var = tf.nn.moments(input, [0])
+            batch_mean, batch_var = tf.nn.moments(input, [0])   #统计矩，一阶矩和二阶中心矩
         else:
             batch_mean, batch_var = tf.nn.moments(input, [0, 1, 2])
 
@@ -127,8 +128,11 @@ class VGG16:
 
         def mean_var_with_update():
             ema_apply_op = ema.apply([batch_mean, batch_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(batch_mean), tf.identity(batch_var)
+            #apply()方法添加了训练变量的影子副本，并保持了其影子副本中训练变量的移动平均值操作。
+            # 在每次训练之后调用此操作，更新移动平均值
+            with tf.control_dependencies([ema_apply_op]):   #只有ema_apply_op执行后，with后的语句才会执行
+                #也能通过参数None清除控制依赖
+                return tf.identity(batch_mean), tf.identity(batch_var)   #叠加
         mean, var = tf.cond(self.train_phase, mean_var_with_update,
           lambda: (ema.average(batch_mean), ema.average(batch_var)))
 
@@ -142,7 +146,8 @@ class VGG16:
         Args: weight size
         Return: initialized weight tensor
         """
-        initial = tf.truncated_normal(shape, 0.0, 1.0) * 0.01
+        initial = tf.truncated_normal(shape, 0.0, 1.0) * 0.01  #张量维度，均值，标准差
+        #从截断的正态分布中输出随机值。 生成的值服从具有指定平均值和标准偏差的正态分布
         return tf.Variable(initial, name='w_'+name)
 
     def get_bias(self, shape, name):
@@ -153,3 +158,6 @@ class VGG16:
         Return: initialized bias tensor
         """
         return tf.Variable(tf.truncated_normal(shape, 0.0, 1.0) * 0.01, name='b_'+name)
+
+
+
